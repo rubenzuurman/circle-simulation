@@ -2,5 +2,5 @@ import unittest
 
 class TestVisualization(unittest.TestCase):
     
-    def __init__(self):
-        pass
+    def test_dummy(self):
+        assert True

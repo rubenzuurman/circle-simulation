@@ -15,7 +15,7 @@ Gravity simulation using circles, the circles can merge and emit smaller circles
         - Note: the function will be clamped between zero and one.
         - Candidate 1: c(m)=a\*sqrt(m-1), where `a` is a constant in the interval [0, 1] determining the cutoff point from where the chance becomes one, the lower `a`, the higher the cutoff point.
     - Every timestep the state of the simulation will be saved in the following form.
-        - Dictionary containing the current time, current timestep, number of particles, and a list for every particle of the form [position, velocity, mass, radius].
+        - Dictionary containing the current time, max time, current timestep, number of particles, and a list for every particle of the form [id, position, velocity, mass, radius].
         - The size of the saved data will be approximately equal to the following:
             - Every timestep: <32 bytes+<32 bytes+<32 bytes+number_of_particles\*<32 bytes, meaning the size of a timestep <96+32n bytes.
             - Thus for t timesteps the data will have a size <96t+32nt bytes.
