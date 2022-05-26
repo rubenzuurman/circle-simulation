@@ -2,9 +2,12 @@
 Visualization class.
 """
 import os
-
 import pickle
+import time
+
 import pygame
+
+from camera import Camera
 
 class Visualization:
     """
@@ -17,6 +20,10 @@ class Visualization:
         """
         # Initialize pygame.
         pygame.init()
+        pygame.font.init()
+        
+        # Initialize font.
+        self.font = pygame.font.SysFont("Courier New", 16)
         
         # Set member variables.
         self.simulation_name = simulation_name
@@ -39,6 +46,9 @@ class Visualization:
         self.current_chunk = 0
         self.load_next_chunk()
         self.timestep = 0
+        
+        # Create camera object.
+        self.camera = Camera()
         
         # Create display.
         self.display = pygame.display.set_mode(window_dimensions)
@@ -112,7 +122,13 @@ class Visualization:
         """
         Main render loop.
         """
+        # Timing variables.
+        last_time = 0
+        current_time = time.time_ns()
+        delta_time = 0
+        
         # Start render loop.
+        keys_pressed = [False, False, False, False, False, False]
         running = True
         while running:
             for event in pygame.event.get():
@@ -124,6 +140,46 @@ class Visualization:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         running = False
+                    
+                    if event.key == pygame.K_w:
+                        keys_pressed[0] = True
+                    if event.key == pygame.K_a:
+                        keys_pressed[1] = True
+                    if event.key == pygame.K_s:
+                        keys_pressed[2] = True
+                    if event.key == pygame.K_d:
+                        keys_pressed[3] = True
+                    if event.key == pygame.K_UP:
+                        keys_pressed[4] = True
+                    if event.key == pygame.K_DOWN:
+                        keys_pressed[5] = True
+                
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_w:
+                        keys_pressed[0] = False
+                    if event.key == pygame.K_a:
+                        keys_pressed[1] = False
+                    if event.key == pygame.K_s:
+                        keys_pressed[2] = False
+                    if event.key == pygame.K_d:
+                        keys_pressed[3] = False
+                    if event.key == pygame.K_UP:
+                        keys_pressed[4] = False
+                    if event.key == pygame.K_DOWN:
+                        keys_pressed[5] = False
+            
+            # Calculate delta time.
+            if last_time == 0:
+                current_time = time.time_ns()
+                last_time = current_time
+                continue
+            else:
+                current_time = time.time_ns()
+                delta_time = current_time - last_time
+                last_time = current_time
+            
+            # Update camera.
+            self.camera.update(delta_time / 1000000000, keys_pressed)
             
             # Fill screen with black.
             self.display.fill((0, 0, 0))
@@ -142,11 +198,29 @@ class Visualization:
             for particle in timestep_data["particles"]:
                 position = particle[1]
                 
-                pos_x = position[0] + self.window_width // 2
-                pos_y = position[1] + self.window_height // 2
+                pos_x = self.camera.get_zoom() \
+                    * (position[0] - self.camera.get_position()[0]) \
+                    + self.window_width // 2
+                pos_y = self.camera.get_zoom() \
+                    * (position[1] - -self.camera.get_position()[1]) \
+                    + self.window_height // 2
                 
                 pygame.draw.circle(self.display, (255, 255, 255), \
                     (pos_x, pos_y), 5)
+            
+            # Render text.
+            self.render_text(f"Timestep: {self.timestep}", (10, 10))
+            current_time = round(timestep_data["current_time"], 1)
+            max_time = round(timestep_data["max_time"], 1)
+            self.render_text(f"Simulation time: " \
+                f"{current_time}/{max_time}", (10, 30))
+            num_of_particles = timestep_data['number_of_particles']
+            self.render_text(f"Particles: {num_of_particles}", (10, 50))
+            
+            self.render_text(f"Camera position: " \
+                f"{self.camera.get_position()}", (10, 90))
+            self.render_text(f"Camera zoom: " \
+                f"{self.camera.get_zoom()}", (10, 110))
             
             # Update display.
             pygame.display.flip()
@@ -156,3 +230,7 @@ class Visualization:
         
         # Quit pygame when the render loop is done.
         pygame.quit()
+    
+    def render_text(self, text, position):
+        text_surface = self.font.render(text, False, (255, 0, 0))
+        self.display.blit(text_surface, position)
