@@ -31,6 +31,7 @@ Gravity simulation using circles, the circles can merge and emit smaller circles
 ## Version 0.1
     - Simulation of single particle moving in a straight line.
     - Visualization fully implemented.
+    - Implement camera movement and zooming.
 
 ## Version 0.2
     - Implement gravity.

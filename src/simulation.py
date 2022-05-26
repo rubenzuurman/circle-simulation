@@ -1,6 +1,8 @@
 """
 Simulation class.
 """
+import copy
+import os
 import pickle
 import random as rnd
 
@@ -9,12 +11,19 @@ class Simulation:
     Simulates the circles.
     """
     
-    def __init__(self, delta_time=0.01, max_time=10.0):
+    def __init__(self, simulation_name="sim", delta_time=0.01, max_time=10.0):
         """
         Initializes the simulation.
         Every particle is a list of the form 
             [id, position, velocity, mass, radius].
         """
+        # Set simulation name member variable.
+        self.simulation_name = simulation_name
+        
+        # Create simulation folder if does not exist.
+        if not os.path.isdir(f"saves/{self.simulation_name}/"):
+            os.mkdir(f"saves/{self.simulation_name}/")
+        
         # Initialize list of particles.
         self.particles = []
         
@@ -27,6 +36,10 @@ class Simulation:
         
         # Initialize simulation data dictionary.
         self.simdata = {}
+        
+        # Counts the number of times the simulation has been saved. This will 
+        # be used in the names of the save files.
+        self.saved_counter = 0
     
     def initialize_particles(self, amount, spawn_range, random_velocity=True):
         """
@@ -52,8 +65,8 @@ class Simulation:
             
             # Calculate random or zero velocity.
             if random_velocity:
-                vel_x = rnd.randint(-1000, 1000) / 1000
-                vel_y = rnd.randint(-1000, 1000) / 1000
+                vel_x = rnd.randint(-1000, 1000) / 1000 * 10
+                vel_y = rnd.randint(-1000, 1000) / 1000 * 10
             else:
                 vel_x = 0
                 vel_y = 0
@@ -99,7 +112,7 @@ class Simulation:
         # Update positions.
         for index, particle in enumerate(self.particles):
             # Unpack particle.
-            id_, position, velocity, radius, mass = particle
+            velocity = particle[2]
             
             # Calculate scaled velocity.
             velocity_x_scaled = velocity[0] * self.delta_time
@@ -113,16 +126,37 @@ class Simulation:
         self.simdata[self.timestep] = {"current_time": self.time, \
             "max_time": self.max_time, "timestep": self.timestep, \
             "number_of_particles": len(self.particles), \
-            "particles": self.particles}
+            "particles": copy.deepcopy(self.particles)}
         
         # Check size of the simdata dictionary to see if it needs to be saved.
         total = [v["number_of_particles"] \
             for _, v in self.simdata.items()]
-        if sum(total) > 50000 or self.time + self.delta_time >= self.max_time:
-            first_timestep = list(self.simdata.keys())[0]
-            last_timestep = list(self.simdata.keys())[-1]
-            filename = "saves/sim/timestep" \
-                f"{first_timestep}-{last_timestep}.pickle"
+        if sum(total) > 4000:
+            # Save data.
+            filename = f"saves/{self.simulation_name}/" \
+                f"timestep{self.saved_counter}.pickle"
             with open(filename, "wb") as file:
                 pickle.dump(self.simdata, file)
+            
+            # Reset dict and increment saved counter.
             self.simdata = {}
+            self.saved_counter += 1
+        else:
+            # If the maximum size was not hit but the next update will 
+            # terminate the simulation, the data will be appended to the last 
+            # save file.
+            if self.time >= self.max_time:
+                # Load last save file if it exists.
+                filename = f"saves/{self.simulation_name}/" \
+                    f"timestep{self.saved_counter-1}.pickle"
+                if os.path.exists(filename):
+                    with open(filename, "rb") as file:
+                        last_simdata = pickle.load(file)
+                    
+                    # Combine the loaded dictionary and currently active 
+                    # dictionary by using the | operator.
+                    self.simdata = last_simdata | self.simdata
+                
+                # Save to file.
+                with open(filename, "wb") as file:
+                    pickle.dump(self.simdata, file)

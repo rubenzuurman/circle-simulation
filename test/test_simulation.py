@@ -1,3 +1,7 @@
+"""
+Run tests by executing  `python -m unittest test.test_simulation`.
+Run linter by executing `pylint src/simulation.py`.
+"""
 import unittest
 
 from src.simulation import Simulation
@@ -6,7 +10,7 @@ class TestSimulation(unittest.TestCase):
     
     def test_init(self):
         # Create new simulation.
-        sim = Simulation(delta_time=1, max_time=2)
+        sim = Simulation(simulation_name="test_sim", delta_time=1, max_time=2)
         
         # Test numerical variables.
         self.assertEqual(sim.time, 0)
@@ -21,7 +25,7 @@ class TestSimulation(unittest.TestCase):
     
     def test_init_particles(self):
         # Create new simulation.
-        sim = Simulation()
+        sim = Simulation(simulation_name="test_sim")
         
         # Initialize particles with random velocity.
         sim.initialize_particles(amount=5, spawn_range=((-1, 1), (-10, 10)), \
@@ -70,7 +74,8 @@ class TestSimulation(unittest.TestCase):
     
     def test_run(self):
         # Create new simulation.
-        sim = Simulation(delta_time=0.01, max_time=1)
+        sim = Simulation(simulation_name="test_sim", delta_time=0.01, \
+            max_time=1)
         
         # Initialize particles with random velocity.
         sim.initialize_particles(amount=1, spawn_range=((-1, 1), (-1, 1)), \
@@ -90,7 +95,8 @@ class TestSimulation(unittest.TestCase):
     
     def test_update(self):
         # Create new simulation.
-        sim = Simulation(delta_time=0.01, max_time=1)
+        sim = Simulation(simulation_name="test_sim", delta_time=0.01, \
+            max_time=1)
         
         # Initialize particles with random velocity.
         sim.initialize_particles(amount=1, spawn_range=((-1, 1), (-1, 1)), \
