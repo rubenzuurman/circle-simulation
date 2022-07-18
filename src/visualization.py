@@ -93,7 +93,13 @@ class Visualization:
         self.simprops["indices"] = available_indices
         
         # Store maximum index in dictionary.
-        self.simprops["max_index"] = max(available_indices) 
+        self.simprops["max_index"] = max(available_indices)
+        
+        # Store delta time in dictionary.
+        with open(f"saves/{self.simulation_name}/timestep0.pickle", "rb") \
+            as file:
+            simdata = pickle.load(file)
+        self.simprops["delta_time"] = simdata[1]["current_time"] - simdata[0]["current_time"]
     
     def load_next_chunk(self):
         """
@@ -122,15 +128,32 @@ class Visualization:
         """
         Main render loop.
         """
+        # Render settings.
+        render_particle_ids = False
+        speedup = 32
+        
         # Timing variables.
         last_time = 0
         current_time = time.time_ns()
         delta_time = 0
         
+        timer_start = 0
+        
+        timestep_data = None
+        
+        temp_fps_time = time.time_ns()
+        temp_fps = 0
+        
+        temp_last10_frame_times = []
+        loading_time_total = 0
+        
         # Start render loop.
         keys_pressed = [False, False, False, False, False, False]
         running = True
         while running:
+            frame_times = {}
+            frame_times["base"] = time.time_ns()
+            
             for event in pygame.event.get():
                 # Detect quit event.
                 if event.type == pygame.QUIT:
@@ -173,30 +196,51 @@ class Visualization:
                 current_time = time.time_ns()
                 last_time = current_time
                 continue
-            else:
-                current_time = time.time_ns()
-                delta_time = current_time - last_time
-                last_time = current_time
+            
+            current_time = time.time_ns()
+            delta_time = current_time - last_time
+            last_time = current_time
+            
+            if current_time - temp_fps_time > 1000000000:
+                temp_fps_time = current_time
+                print(temp_fps)
+                temp_fps = 0
+            
+            # If the timer is zero set the start.
+            if timer_start == 0:
+                timer_start = time.time_ns()
+            
+            frame_times["after_input_handling"] = time.time_ns()
             
             # Update camera.
             self.camera.update(delta_time / 1000000000, keys_pressed)
             
-            # Fill screen with black.
-            self.display.fill((0, 0, 0))
+            frame_times["after_camera_update"] = time.time_ns()
             
-            # Load new simulation data if required.
-            if self.timestep not in list(self.simdata.keys()):
+            # Calculate current timestep.
+            zzz_time_diff = (current_time - timer_start - loading_time_total) / 1000000000
+            zzz_time_per_step = self.simprops["delta_time"] / speedup
+            current_timestep = int(zzz_time_diff / zzz_time_per_step)
+            
+            # Update timestep data and load new chunk if required.
+            self.timestep = current_timestep
+            if not self.timestep in self.simdata.keys():
+                loading_start = time.time_ns()
                 running = self.load_next_chunk()
                 if not running:
                     continue
-            
-            # Get current timestep data and increment timestep.
+                loading_end = time.time_ns()
+                loading_time_total += loading_end - loading_start
             timestep_data = self.simdata[self.timestep]
-            self.timestep += 1
+            
+            frame_times["after_simdata_update"] = time.time_ns()
+            
+            # Fill screen with black.
+            self.display.fill((0, 0, 0))
             
             # Render particles.
             for particle in timestep_data["particles"]:
-                position = particle[1]
+                particle_id, position, _, _, radius = particle
                 
                 pos_x = self.camera.get_zoom() \
                     * (position[0] - self.camera.get_position()[0]) \
@@ -205,8 +249,17 @@ class Visualization:
                     * (position[1] - -self.camera.get_position()[1]) \
                     + self.window_height // 2
                 
+                if pos_x < 0 or pos_y < 0 \
+                    or pos_x > self.window_width \
+                    or pos_y > self.window_height:
+                    continue
+                
                 pygame.draw.circle(self.display, (255, 255, 255), \
-                    (pos_x, pos_y), 5)
+                    (pos_x, pos_y), max(int(radius * self.camera.zoom), 1))
+                
+                # Render particle ids if enabled.
+                if render_particle_ids:
+                    self.render_text(f"{particle_id}", (pos_x - 5, pos_y - 20))
             
             # Render text.
             self.render_text(f"Timestep: {self.timestep}", (10, 10))
@@ -222,8 +275,30 @@ class Visualization:
             self.render_text(f"Camera zoom: " \
                 f"{self.camera.get_zoom()}", (10, 110))
             
+            input_handling_time = sum([e["after_input_handling"] - e["base"] \
+                for e in temp_last10_frame_times]) / max(len(temp_last10_frame_times), 1) / 1000
+            camera_update_time = sum([e["after_camera_update"] - e["after_input_handling"] \
+                for e in temp_last10_frame_times]) / max(len(temp_last10_frame_times), 1) / 1000
+            simdata_update_time = sum([e["after_simdata_update"] - e["after_camera_update"] \
+                for e in temp_last10_frame_times]) / max(len(temp_last10_frame_times), 1) / 1000
+            render_time = sum([e["after_render"] - e["after_simdata_update"] \
+                for e in temp_last10_frame_times]) / max(len(temp_last10_frame_times), 1) / 1000
+            
+            self.render_text("Last 10 frames average times", (10, 150))
+            self.render_text(f"Input handling: {input_handling_time:.2f} μs", (10, 170))
+            self.render_text(f"Camera update: {camera_update_time:.2f} μs", (10, 190))
+            self.render_text(f"Simdata update: {simdata_update_time:.2f} μs", (10, 210))
+            self.render_text(f"Render time: {render_time:.2f} μs", (10, 230))
+            
             # Update display.
             pygame.display.flip()
+            
+            frame_times["after_render"] = time.time_ns()
+            temp_last10_frame_times.append(frame_times)
+            if len(temp_last10_frame_times) > 10:
+                temp_last10_frame_times = temp_last10_frame_times[1:]
+            
+            temp_fps += 1
             
             # Tick clock.
             self.clock.tick(fps)
@@ -232,5 +307,9 @@ class Visualization:
         pygame.quit()
     
     def render_text(self, text, position):
+        """
+        Assumes text is a string and position is an iterable containing two 
+        integers. Renders the text with the topleft at the specified position.
+        """
         text_surface = self.font.render(text, False, (255, 0, 0))
         self.display.blit(text_surface, position)

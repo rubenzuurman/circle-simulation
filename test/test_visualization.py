@@ -8,8 +8,14 @@ from src.simulation import Simulation
 from src.visualization import Visualization
 
 class TestVisualization(unittest.TestCase):
+    """
+    Class for testing src/visualization.py
+    """
     
     def test_init(self):
+        """
+        Test visualization.py __init__() function.
+        """
         # Create new simulation.
         sim = Simulation(simulation_name="test_sim", delta_time=0.1, \
             max_time=1.0)
@@ -36,10 +42,10 @@ class TestVisualization(unittest.TestCase):
         # is not none, and clock is also not none.
         self.assertIsInstance(vis.simdata, dict)
         self.assertFalse(vis.simdata == {})
-        self.assertFalse(vis.display == None)
+        self.assertFalse(vis.display is None)
         self.assertEqual(vis.current_chunk, 0)
         self.assertEqual(vis.timestep, 0)
-        self.assertFalse(vis.clock == None)
+        self.assertFalse(vis.clock is None)
         
         # Check if simulation properties contains the keys `indices` and 
         # `max_index`.

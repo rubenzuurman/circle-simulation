@@ -39,3 +39,11 @@ Gravity simulation using circles, the circles can merge and emit smaller circles
 
 ## Version 0.3
     - Implement emission of circles.
+
+## Version 0.4
+    - Implement Barnes-Hut algorithm for gravity calculation.
+
+# Procedure before committing
+1. Run all tests.
+2. Run pylint on every source file.
+3. Run a simulation.
