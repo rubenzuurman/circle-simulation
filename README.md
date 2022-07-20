@@ -38,10 +38,10 @@ Gravity simulation using circles, the circles can merge and emit smaller circles
     - Implement merging of circles.
 
 ## Version 0.3
-    - Implement emission of circles.
+    - Implement Barnes-Hut algorithm for gravity calculation.
 
 ## Version 0.4
-    - Implement Barnes-Hut algorithm for gravity calculation.
+    - Implement emission of circles.
 
 # Procedure before committing
 1. Run all tests.

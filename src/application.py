@@ -117,12 +117,12 @@ def main():
     #sim = run_simulation(sim)
     
     # Create simulation.
-    sim = Simulation(simulation_name=sim_name, delta_time=delta_time, \
+    """sim = Simulation(simulation_name=sim_name, delta_time=delta_time, \
         max_time=max_time)
     sim.initialize_particles(amount=number_of_particles, \
         spawn_range=((-spawn_size // 2, spawn_size // 2), \
             (-spawn_size // 2, spawn_size // 2)), \
-        random_velocity=True, velocity_magnitude=start_velocity_magnitude)
+        random_velocity=True, velocity_magnitude=start_velocity_magnitude)"""
     
     # Create test simulation.
     #with open("saves/test_simulation.pickle", "wb") as file:
@@ -133,7 +133,7 @@ def main():
     #    sim = pickle.load(file)
     
     # Run simulation.
-    sim.run()
+    #sim.run()
     
     """
     Save simulation, save collisions with time.
